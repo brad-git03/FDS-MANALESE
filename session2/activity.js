@@ -126,6 +126,6 @@ getAverage(10, 20, 30, 40);
 
 function checkIfPassed(score, totalScore) {
     console.log("is passing?");
-    console.log((score / totalScore) * 100 > 75);
+    console.log((score / totalScore) * 100 > 74);
 }
-checkIfPassed(73, 100); // Example score and total score
+checkIfPassed(74, 100); // Example score and total score
