@@ -60,3 +60,21 @@ function greetUser() {
     }
 }
 greetUser();
+
+
+// Parameterized Functions
+// Parameters are variable-like code. It can gather client/user inputs
+
+function FullName(name) {
+    console.log("Hello, " + name + "!");
+}
+
+// Function Invocation with Argument
+
+FullName("Hakdog");
+
+function introduceYourPet(name, breed, age){
+    console.log("My pet's name is " + name + ", a " + breed + ", and is " + age + " years old.");
+}
+
+introduceYourPet("Jm", "Shih Tzu", 2);
