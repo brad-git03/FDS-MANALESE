@@ -117,9 +117,15 @@ function getAverage(num1, num2, num3, num4) {
 getAverage(10, 20, 30, 40);
 
 //5. Check if Passed
+// function checkIfPassed(score, totalScore) {
+//     let percentage = (score / totalScore) * 100; // Calculate percentage
+//     let isPassed = percentage > 75; // Check if greater than passing percentage
+//     console.log(isPassed);
+// }
+// let isPassingScore = checkIfPassed(74, 100); // Example score and total score
+
 function checkIfPassed(score, totalScore) {
-    let percentage = (score / totalScore) * 100; // Calculate percentage
-    let isPassed = percentage > 75; // Check if greater than passing percentage
-    console.log(isPassed);
+    console.log("is passing?");
+    console.log((score / totalScore) * 100 > 75);
 }
-let isPassingScore = checkIfPassed(74, 100); // Example score and total score
+checkIfPassed(73, 100); // Example score and total score
