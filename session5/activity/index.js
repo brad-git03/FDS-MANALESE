@@ -80,17 +80,132 @@ console.log(groceryList);
         -Invoke the function and store it inside a variable itemsFound 
         - Log the itemsFound variable in the console.
 */
+// Sample grocery list
+
+let itemsFound = []; // global variable
+
 function displayItems() {
-    let itemsFound = [];
-    if (groceryList.length == 0) {
-        console.log("No items to display.");
-    }else {
-        for(let index = 0; index < groceryList.length; index++){
-            console.log((index + 1) + ". " + itemsFound[index]);
-        }
+    for (let i = 0; i < groceryList.length; i++) {
+        itemsFound[i] = (i + 1) + ". " + groceryList[i];
     }
 }
 
+// Call the function to fill itemsFound
+displayItems();
+
 console.log("Grocery List:");
-itemsFound = displayItems();
 console.log(itemsFound);
+
+
+/*
+    10. Create a function which is able to iterate over the array to search for an item.
+        -This function will receive the name of the element as an argument
+        -Create an index variable with a value of 0
+        -Using a for loop, iterate over the array to search for each index that has the same value as the item.
+        -If it found, reassign the value of the variable to the current value of index
+        -After the loop, check if the value of the varialbe is not -1
+            -If so, return the string "The item exists in the list."
+            -If not, return the string "The item is not in the list."
+        -Invoke the function to search for an item and store the result in a variable isItemFound.
+        -Log the value of isItemFound in the console.
+*/
+
+let resultMessage = ""; // temporary variable for blank space
+
+function searchItem(itemName) {
+    let index = -1; 
+
+    for (let i = 0; i < groceryList.length; i++) {
+        if (groceryList[i] === itemName) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index !== -1) {
+        resultMessage = "The item exists in the list.";
+    } else {
+        resultMessage = "The item is not in the list.";
+    }
+}
+
+searchItem("Bananas");
+
+// Now assign the message to the const
+const isItemFound = resultMessage;
+console.log(isItemFound);
+
+
+/*
+11. Create a function which is able to remove a specific item in the array by index
+    - This function will recieve the index as argument
+    -Add an if statement to check if the index is less than 0 or greater than or equal to the .length of the groceryList
+        -If it is, return invalid index.
+    -Else, use for loop to iterate over the groceryList to reassign values starting from the argument sent.
+        -reassign the value of the index into the next element by adding 1 to the current index
+    -Outside the loop, decrease the length of the array
+    -Return string Element removed successfully.
+    -Create a global variable called outside of the function  called isUsersEmpty and store the returned value from the function.
+    -Log the isUsersEmpty variable in the console.
+*/
+
+let isUsersEmpty = ""; // global variable to store result
+
+function removeElement(index) {
+    if (index < 0 || index >= groceryList.length) {
+        isUsersEmpty = "Invalid index.";
+    } else {
+        for (let i = index; i < groceryList.length - 1; i++) {
+            groceryList[i] = groceryList[i + 1];
+        }
+        groceryList.length = groceryList.length - 1;
+        isUsersEmpty = "Element removed successfully.";
+    }
+}
+
+// Call the function
+removeElement(1);
+
+// Assign the result to const without using return
+const removedElement = isUsersEmpty;
+
+console.log(removedElement); // → "Element removed successfully."
+console.log(groceryList);    // → [ 'Milk', 'Bread', 'Eggs' ]
+
+/*
+12. Create function which is able to delete all items in the array.
+    -You can modify/set the length of the array.
+    -The function should not return anything.
+*/
+
+function deleteAll() {
+    groceryList.length = 0;
+}
+deleteAll();
+console.log(groceryList); // Output: []
+
+/*
+13. Create a function which is able to check if the array is empty.
+    -Add an if statement to check if the length of the users array is greater than 0.
+        -If it is, return false.
+    -Else, return true.
+    -Create a global variable called outside of the function  called isUsersEmpty and store the returned value from the function.
+    -Log the isUsersEmpty variable in the console.
+
+*/
+
+let users = []; // or try with ["Alice"]
+let result = false; // global temp variable
+
+function isEmpty() {
+    if (users.length > 0) {
+        result = false;
+    } else {
+        result = true;
+    }
+}
+
+isEmpty(); // run the function
+
+const isUsersEmpty1 = result; // assign result to const
+console.log(isUsersEmpty1);
