@@ -2,6 +2,7 @@ const express = require("express");
 const mysql = require("mysql2");
 const bodyParser = require("body-parser");
 const bcrypt = require("bcryptjs");
+const cors = require("cors");
 
 const app = express();
 
@@ -12,6 +13,7 @@ const port = 3000;
 app.use(express.json()); //Convert JSON data to JS object
 app.use(express.urlencoded({ extended: true })); //Parse URL-encoded data
 app.use(bodyParser.json()); //Parse SQL Data to JS object
+app.use(cors()); //Enable CORS for all origins
 
 // db connection settings
 const db = mysql.createConnection({
@@ -205,7 +207,7 @@ app.post("/users/register", async (req, res) => {
 
         if (result.length > 0) {
             res.send({
-                code: 1,
+                code: 2,
                 codeMessage: "user-already-existing",
                 details: "The email you provided was already registered."
             })
@@ -272,7 +274,7 @@ app.post("/users/login", (req, res) => {
             }
         }
     })
-    
+
 })
 
 
