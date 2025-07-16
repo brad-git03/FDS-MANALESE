@@ -77,7 +77,7 @@ app.post("/tasks/create", (req, res) => {
         `INSERT INTO tasks(taskName, taskDescription, isActive, taskCreated, user_id) VALUES (?, ?, ?, ?, ?)`;
 
     db.query(sql,
-        [taskName, taskDescription, isActive = 1, taskCreated = new Date (), user_id = 4], (err, result) => {
+        [taskName, taskDescription, isActive, taskCreated, user_id], (err, result) => {
             if (err) {
                 console.error("SQL Error:", err);
                 res.send({
@@ -182,6 +182,28 @@ app.delete("/tasks/delete/:user_id/:taskId", (req, res) => {
                     }
                 });
             }
+        }
+    });
+});
+// UPDATE TASK
+app.put("/tasks/update/:user_id/:taskId", (req, res) => {
+    const { user_id, taskId } = req.params;
+    const { taskName, taskDescription, isActive } = req.body;
+    const sql = `UPDATE tasks SET taskName = ?, taskDescription = ?, isActive = ? WHERE task_id = ? AND user_id = ?`;
+    db.query(sql, [taskName, taskDescription, isActive, taskId, user_id], (err, result) => {
+        if (err || result.affectedRows === 0) {
+            res.send({
+                code: 0,
+                codeMessage: "task-not-found",
+                details: "Task cannot be updated or the task is not found."
+            });
+            return;
+        } else {
+            res.send({
+                code: 1,
+                codeMessage: "task-updated",
+                details: "Task has been updated successfully."
+            });
         }
     });
 });
