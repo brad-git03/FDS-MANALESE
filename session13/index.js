@@ -185,28 +185,49 @@ app.delete("/tasks/delete/:user_id/:taskId", (req, res) => {
         }
     });
 });
-// UPDATE TASK
+
+
+// Update Task (by user)
 app.put("/tasks/update/:user_id/:taskId", (req, res) => {
     const { user_id, taskId } = req.params;
-    const { taskName, taskDescription, isActive } = req.body;
-    const sql = `UPDATE tasks SET taskName = ?, taskDescription = ?, isActive = ? WHERE task_id = ? AND user_id = ?`;
-    db.query(sql, [taskName, taskDescription, isActive, taskId, user_id], (err, result) => {
-        if (err || result.affectedRows === 0) {
-            res.send({
+    const { taskName, taskDescription } = req.body;
+
+    if (!taskName || !taskDescription) {
+        return res.send({
+            code: 0,
+            codeMessage: "missing-fields",
+            details: "Task name and description are required."
+        });
+    }
+
+    const sql = `UPDATE tasks SET taskName = ?, taskDescription = ? WHERE task_id = ? AND user_id = ?`;
+
+    db.query(sql, [taskName, taskDescription, taskId, user_id], (err, result) => {
+        if (err) {
+            return res.send({
                 code: 0,
-                codeMessage: "task-not-found",
-                details: "Task cannot be updated or the task is not found."
-            });
-            return;
-        } else {
-            res.send({
-                code: 1,
-                codeMessage: "task-updated",
-                details: "Task has been updated successfully."
+                codeMessage: "update-failed",
+                details: "There was an error while updating the task.",
+                error: err
             });
         }
+
+        if (result.affectedRows === 0) {
+            return res.send({
+                code: 2,
+                codeMessage: "task-not-found",
+                details: "No task was found to update."
+            });
+        }
+
+        return res.send({
+            code: 1,
+            codeMessage: "task-updated",
+            details: "The task has been successfully updated."
+        });
     });
 });
+
 
 // USER ROUTES
 
@@ -310,6 +331,103 @@ app.post("/users/login", (req, res) => {
         }
     })
 })
+
+
+
+// Update user profile (name fields only)
+app.put("/users/update/:id", (req, res) => {
+    const { id } = req.params;
+    const { fname, mname, lname } = req.body;
+
+    if (!fname || !mname || !lname) {
+        return res.send({
+            code: 0,
+            codeMessage: "missing-fields",
+            details: "All name fields are required."
+        });
+    }
+
+    const sqlUpdate = "UPDATE users SET fname = ?, mname = ?, lname = ? WHERE user_id = ?";
+    db.query(sqlUpdate, [fname, mname, lname, id], (err, result) => {
+        if (err) {
+            return res.send({
+                code: 0,
+                codeMessage: "update-failed",
+                details: "Something went wrong while updating your profile.",
+                error: err
+            });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.send({
+                code: 2,
+                codeMessage: "user-not-found",
+                details: "No user found to update."
+            });
+        }
+
+        // ✅ Fetch updated user data
+        const sqlSelect = "SELECT user_id, fname, mname, lname, email FROM users WHERE user_id = ?";
+        db.query(sqlSelect, [id], (err2, rows) => {
+            if (err2) {
+                return res.send({
+                    code: 1,
+                    codeMessage: "profile-updated",
+                    details: "Profile updated but failed to fetch updated data."
+                });
+            }
+
+            return res.send({
+                code: 1,
+                codeMessage: "profile-updated",
+                details: "Your profile has been updated successfully.",
+                updatedUser: rows[0] // ✅ Send updated user data
+            });
+        });
+    });
+});
+// Change Password
+app.put('/users/change-password/:user_id', (req, res) => {
+    const { user_id } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+        return res.json({ code: 0, details: 'All fields are required.' });
+    }
+
+    const sql = 'SELECT pass FROM users WHERE user_id = ?';
+    db.query(sql, [user_id], (err, result) => {
+        if (err) return res.json({ code: 0, details: 'Database error.' });
+        if (result.length === 0) return res.json({ code: 0, details: 'User not found.' });
+
+        const hashedPassword = result[0].pass;
+
+        // Compare current password with hashed
+        bcrypt.compare(currentPassword, hashedPassword, (err, isMatch) => {
+            if (err) return res.json({ code: 0, details: 'Error verifying password.' });
+            if (!isMatch) return res.json({ code: 0, details: 'Current password is incorrect.' });
+
+            // ✅ Check if new password is same as current password
+            bcrypt.compare(newPassword, hashedPassword, (err, isSame) => {
+                if (isSame) {
+                    return res.json({ code: 0, details: 'New password cannot be the same as the current password.' });
+                }
+
+                // Hash new password
+                bcrypt.hash(newPassword, 10, (err, newHashed) => {
+                    if (err) return res.json({ code: 0, details: 'Error hashing new password.' });
+
+                    const updateSql = 'UPDATE users SET pass = ? WHERE user_id = ?';
+                    db.query(updateSql, [newHashed, user_id], (err) => {
+                        if (err) return res.json({ code: 0, details: 'Error updating password.' });
+
+                        return res.json({ code: 1, details: 'Password updated successfully.' });
+                    });
+                });
+            });
+        });
+    });
+});
 
 function toMySQLDateTime(jsDate) {
     const pad = n => n < 10 ? '0' + n : n;
