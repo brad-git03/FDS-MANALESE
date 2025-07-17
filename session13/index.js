@@ -9,7 +9,7 @@ const port = 4000;
 
 // middlewares
 app.use(express.json());
-app.use(express.urlencoded({extended:true}));
+app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors());
 
@@ -23,9 +23,9 @@ const db = mysql.createConnection({
 
 // DB Con confirmation message
 db.connect(err => {
-    if(err){
+    if (err) {
         console.log("Error connecting in MySQL Database.");
-    }else{
+    } else {
         console.log("MySQL Database Connection is Successful!");
     }
 })
@@ -233,46 +233,53 @@ app.put("/tasks/update/:user_id/:taskId", (req, res) => {
 
 // User sign up
 app.post("/users/register", async (req, res) => {
-    const {fname, mname, lname, email, pass} = req.body;
+    const { fname, mname, lname, email, pass } = req.body;
 
-    if(!fname || !mname || !lname || !email || !pass){
+    if (!fname || !mname || !lname || !email || !pass) {
         res.send({
             code: 0,
             codeMessage: "some-fields-empty",
             details: "Please fill all required fields."
         })
     }
+    if (pass.length < 8) {
+        res.send({
+            code: 0,
+            codeMessage: "password-too-short",
+            details: "Password must be at least 8 characters long."
+        })
+    }
 
     const check = "SELECT * FROM users WHERE email = ?";
 
     db.query(check, [email], async (err, result) => {
-        if(err){
+        if (err) {
             res.send({
-            code: 0,
-            codeMessage: "server-error",
-            details: "Cannot accept your registration at the moment."
-        })
+                code: 0,
+                codeMessage: "server-error",
+                details: "Cannot accept your registration at the moment."
+            })
         }
 
-        if(result.length > 0){
+        if (result.length > 0) {
             res.send({
                 code: 2,
                 codeMessage: "user-already-existing",
                 details: "The email you provided was already registered."
             })
-        }else{
+        } else {
             const hashedPassword = await bcrypt.hash(pass, 10);
 
             const sql = "INSERT INTO users(fname, mname, lname, email, pass) VALUES (?, ?, ?, ? ,?)";
 
-            db.query(sql, [fname, mname, lname, email, hashedPassword], (err, result) => {
-                if(err){
+            db.query(sql, [fname, mname, lname, email.toLowerCase(), hashedPassword], (err, result) => {
+                if (err) {
                     res.send({
-                    code: 0,
-                    codeMessage: "server-error",
-                    details: "Cannot accept your registration at the moment."
+                        code: 0,
+                        codeMessage: "server-error",
+                        details: "Cannot accept your registration at the moment."
                     })
-                }else{
+                } else {
                     res.json({
                         code: 1,
                         codeMessage: "registration-success",
@@ -280,7 +287,7 @@ app.post("/users/register", async (req, res) => {
                     })
                 }
             })
-        }  
+        }
 
     })
 })
@@ -288,44 +295,44 @@ app.post("/users/register", async (req, res) => {
 // User Auth/Login
 
 app.post("/users/login", (req, res) => {
-    const {email, pass} = req.body;
+    const { email, pass } = req.body;
     const sql = "SELECT * FROM users WHERE email = ?";
 
     db.query(sql, email, async (err, result) => {
-        if(err){
+        if (err) {
             res.send({
                 code: 0,
                 codeMessage: "server-error",
                 details: "There is a problem with your request. Please try again."
             })
-        }else if(result.length <= 0){
+        } else if (result.length <= 0) {
             res.send({
                 code: 2,
                 codeMessage: "user-not-found",
                 details: "The email provided is not registered."
             })
-        }else{
+        } else {
             const user = result[0];
             const isMatched = await bcrypt.compare(pass, user.pass);
 
-            if(!isMatched){
+            if (!isMatched) {
                 res.send({
-                code: 3,
-                codeMessage: "error-details",
-                details: "The email or password is incorrect."
+                    code: 3,
+                    codeMessage: "error-details",
+                    details: "The email or password is incorrect."
                 })
-            }else{
+            } else {
                 res.send({
-                code: 1,
-                codeMessage: "login-success",
-                details: `Welcome to UTask, ${user.fname} ${user.lname}!`,
-                user_data: {
-                    user_id: result[0].user_id,
-                    fname: result[0].fname,
-                    mname: result[0].mname,
-                    lname: result[0].lname,
-                    email: result[0].email
-                }
+                    code: 1,
+                    codeMessage: "login-success",
+                    details: `Welcome to UTask, ${user.fname} ${user.lname}!`,
+                    user_data: {
+                        user_id: result[0].user_id,
+                        fname: result[0].fname,
+                        mname: result[0].mname,
+                        lname: result[0].lname,
+                        email: result[0].email
+                    }
                 })
             }
         }
@@ -335,99 +342,123 @@ app.post("/users/login", (req, res) => {
 
 
 // Update user profile (name fields only)
+// Update user profile (fname, mname, lname, and email)
 app.put("/users/update/:id", (req, res) => {
     const { id } = req.params;
-    const { fname, mname, lname } = req.body;
+    const { fname, mname, lname, email } = req.body;
 
-    if (!fname || !mname || !lname) {
+    if (!fname || !mname || !lname || !email) {
         return res.send({
             code: 0,
             codeMessage: "missing-fields",
-            details: "All name fields are required."
+            details: "All fields are required."
         });
     }
 
-    const sqlUpdate = "UPDATE users SET fname = ?, mname = ?, lname = ? WHERE user_id = ?";
-    db.query(sqlUpdate, [fname, mname, lname, id], (err, result) => {
+    // Check if the new email is already used by someone else
+    const checkEmailSql = "SELECT * FROM users WHERE email = ? AND user_id != ?";
+    db.query(checkEmailSql, [email, id], (err, result) => {
         if (err) {
             return res.send({
                 code: 0,
-                codeMessage: "update-failed",
-                details: "Something went wrong while updating your profile.",
+                codeMessage: "email-check-failed",
+                details: "Failed to validate email.",
                 error: err
             });
         }
 
-        if (result.affectedRows === 0) {
+        if (result.length > 0) {
             return res.send({
                 code: 2,
-                codeMessage: "user-not-found",
-                details: "No user found to update."
+                codeMessage: "email-already-used",
+                details: "The new email is already used by another user."
             });
         }
 
-        // ✅ Fetch updated user data
-        const sqlSelect = "SELECT user_id, fname, mname, lname, email FROM users WHERE user_id = ?";
-        db.query(sqlSelect, [id], (err2, rows) => {
-            if (err2) {
+        // Proceed to update user
+        const updateSql = "UPDATE users SET fname = ?, mname = ?, lname = ?, email = ? WHERE user_id = ?";
+        db.query(updateSql, [fname, mname, lname, email, id], (err, result) => {
+            if (err) {
                 return res.send({
-                    code: 1,
-                    codeMessage: "profile-updated",
-                    details: "Profile updated but failed to fetch updated data."
+                    code: 0,
+                    codeMessage: "update-failed",
+                    details: "Something went wrong while updating your profile.",
+                    error: err
+                });
+            }
+
+            if (result.affectedRows === 0) {
+                return res.send({
+                    code: 3,
+                    codeMessage: "user-not-found",
+                    details: "No user found to update."
                 });
             }
 
             return res.send({
                 code: 1,
                 codeMessage: "profile-updated",
-                details: "Your profile has been updated successfully.",
-                updatedUser: rows[0] // ✅ Send updated user data
+                details: "Your profile has been updated successfully."
             });
         });
     });
 });
-// Change Password
-app.put('/users/change-password/:user_id', (req, res) => {
-    const { user_id } = req.params;
+
+// Change User Password
+app.put("/users/change-password/:id", async (req, res) => {
+    const { id } = req.params;
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-        return res.json({ code: 0, details: 'All fields are required.' });
+        return res.send({
+            code: 0,
+            codeMessage: "missing-fields",
+            details: "Current and new passwords are required."
+        });
     }
 
-    const sql = 'SELECT pass FROM users WHERE user_id = ?';
-    db.query(sql, [user_id], (err, result) => {
-        if (err) return res.json({ code: 0, details: 'Database error.' });
-        if (result.length === 0) return res.json({ code: 0, details: 'User not found.' });
+    const sqlSelect = "SELECT * FROM users WHERE user_id = ?";
+    db.query(sqlSelect, [id], async (err, results) => {
+        if (err || results.length === 0) {
+            return res.send({
+                code: 0,
+                codeMessage: "user-not-found",
+                details: "User not found."
+            });
+        }
 
-        const hashedPassword = result[0].pass;
+        const user = results[0];
+        const isMatch = await bcrypt.compare(currentPassword, user.pass);
+        if (!isMatch) {
+            return res.send({
+                code: 2,
+                codeMessage: "incorrect-password",
+                details: "Current password is incorrect."
+            });
+        }
 
-        // Compare current password with hashed
-        bcrypt.compare(currentPassword, hashedPassword, (err, isMatch) => {
-            if (err) return res.json({ code: 0, details: 'Error verifying password.' });
-            if (!isMatch) return res.json({ code: 0, details: 'Current password is incorrect.' });
-
-            // ✅ Check if new password is same as current password
-            bcrypt.compare(newPassword, hashedPassword, (err, isSame) => {
-                if (isSame) {
-                    return res.json({ code: 0, details: 'New password cannot be the same as the current password.' });
-                }
-
-                // Hash new password
-                bcrypt.hash(newPassword, 10, (err, newHashed) => {
-                    if (err) return res.json({ code: 0, details: 'Error hashing new password.' });
-
-                    const updateSql = 'UPDATE users SET pass = ? WHERE user_id = ?';
-                    db.query(updateSql, [newHashed, user_id], (err) => {
-                        if (err) return res.json({ code: 0, details: 'Error updating password.' });
-
-                        return res.json({ code: 1, details: 'Password updated successfully.' });
-                    });
+        const hashedNewPass = await bcrypt.hash(newPassword, 10);
+        const sqlUpdate = "UPDATE users SET pass = ? WHERE user_id = ?";
+        db.query(sqlUpdate, [hashedNewPass, id], (err, result) => {
+            if (err) {
+                return res.send({
+                    code: 0,
+                    codeMessage: "update-failed",
+                    details: "Failed to update password."
                 });
+            }
+
+            return res.send({
+                code: 1,
+                codeMessage: "password-updated",
+                details: "Password successfully updated."
             });
         });
     });
 });
+
+
+
 
 function toMySQLDateTime(jsDate) {
     const pad = n => n < 10 ? '0' + n : n;
